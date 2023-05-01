@@ -29,6 +29,31 @@ public class SecureEnclaveModule: Module {
     return (item as! SecKey)
   }
 
+  /// Internal function to sign a message key handle
+  private func sign(_ message: String, _ keyHandle: SecKey) throws -> String {
+    let messageData = message.data(using: .utf8)! as CFData
+    
+    guard SecKeyIsAlgorithmSupported( keyHandle, .sign, EnclaveModule.algorithm ) else {
+      throw NSError(domain: "SecureEnclaveModule: Algorithm Not Supported", code: 1, userInfo: nil)
+    }
+    
+    var error: Unmanaged<CFError>?
+    
+    let signedMessage = SecKeyCreateSignature(
+      keyHandle,
+      EnclaveModule.algorithm,
+      messageData,
+      &error
+    )
+    
+    guard signedMessage != nil else {
+      print(error?.takeRetainedValue() as Error)
+      throw NSError(domain: "SecureEnclaveModule: Signing Failed", code: 2, userInfo: nil)
+    }
+    
+    return (signedMessage! as Data).base64EncodedString()
+  }
+
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
   // See https://docs.expo.dev/modules/module-api for more details about available components.
@@ -173,6 +198,20 @@ public class SecureEnclaveModule: Module {
       }
       
       promise.resolve(true);
+    }
+
+    AsyncFunction("signMessage") { (alias: String, message: String, promise: Promise) in
+      // Get the key handle
+      let keyHandle = getKeyHandle(alias: String(alias))!
+      
+      // Try to sign the message
+      do {
+        let signature = try sign(message, keyHandle)
+        promise.resolve(signature)
+      } catch {
+        print(error) 
+        promise.reject(nil, "Unknown error", nil)
+      }
     }
   }
 }

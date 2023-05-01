@@ -53,6 +53,19 @@ export async function deleteKeyPair(alias: string): Promise<void> {
     return await SecureEnclaveModule.deleteKeyPair(alias);
 }
 
+/**
+	@description Signs a message using key pair of the alias
+	@dev Prompts for biometrics
+	@throws If there's no key pair for the alias
+	@throws If signing fails
+*/
+export async function signMessage(
+    alias: string,
+    message: string,
+): Promise<string> {
+    return await SecureEnclaveModule.signMessage(alias, message);
+}
+
 const emitter = new EventEmitter(
     SecureEnclaveModule ?? NativeModulesProxy.SecureEnclave,
 );
