@@ -33,7 +33,7 @@ public class SecureEnclaveModule: Module {
   private func sign(_ message: String, _ keyHandle: SecKey) throws -> String {
     let messageData = message.data(using: .utf8)! as CFData
     
-    guard SecKeyIsAlgorithmSupported( keyHandle, .sign, EnclaveModule.algorithm ) else {
+    guard SecKeyIsAlgorithmSupported( keyHandle, .sign, SecureEnclaveModule.algorithm ) else {
       throw NSError(domain: "SecureEnclaveModule: Algorithm Not Supported", code: 1, userInfo: nil)
     }
     
@@ -41,13 +41,13 @@ public class SecureEnclaveModule: Module {
     
     let signedMessage = SecKeyCreateSignature(
       keyHandle,
-      EnclaveModule.algorithm,
+      SecureEnclaveModule.algorithm,
       messageData,
       &error
     )
     
     guard signedMessage != nil else {
-      print(error?.takeRetainedValue() as Error)
+      print(error!.takeUnretainedValue() as Error)
       throw NSError(domain: "SecureEnclaveModule: Signing Failed", code: 2, userInfo: nil)
     }
     
@@ -98,12 +98,13 @@ public class SecureEnclaveModule: Module {
         nil
       )!
     
-      let tag = String(alias).data(using: .utf8)!
+      let tag = alias.data(using: .utf8)!
       let attributes: [String: Any] = [
         kSecClass as String             : kSecClassKey,
         kSecAttrKeyType as String       : kSecAttrKeyTypeEC,
         kSecAttrKeySizeInBits as String : 256,
-        kSecAttrTokenID as String       : kSecAttrTokenIDSecureEnclave,
+        // DEV: Using this flag causes -25293 key generation error
+        // kSecAttrTokenID as String       : kSecAttrTokenIDSecureEnclave,
         kSecPrivateKeyAttrs as String   : [
           kSecAttrIsPermanent as String     : true,
           kSecAttrApplicationTag as String  : tag,
@@ -111,16 +112,15 @@ public class SecureEnclaveModule: Module {
           kSecUseAuthenticationUI as String : kSecUseAuthenticationUIAllow
         ]
       ]
-    
+      
       var error: Unmanaged<CFError>?
     
       guard let privateKey = SecKeyCreateRandomKey(
         attributes as CFDictionary,
         &error
       ) else {
-        let err = error!.takeRetainedValue() as Error
         promise.reject("ERR_PAIR_GENERATE", "Can't generate keypair")
-        print(err)
+        print(error!.takeRetainedValue() as Error)
         return
       }
     
@@ -180,7 +180,7 @@ public class SecureEnclaveModule: Module {
         promise.resolve(signature)
       } catch {
         print(error) 
-        promise.reject(nil, "Unknown error", nil)
+        promise.reject("ERR_UNKNOWN", "Unknown error")
       }
     }
   }
