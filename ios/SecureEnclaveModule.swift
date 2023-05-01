@@ -154,6 +154,26 @@ public class SecureEnclaveModule: Module {
     
       promise.resolve(publicKeyDER.base64EncodedString());
     }
+
+    AsyncFunction("deleteKeyPair") { (alias: String, promise: Promise) in
+      let tag = String(alias).data(using: .utf8)!
+      
+      let query: [String: Any] = [
+        kSecClass as String               : kSecClassKey,
+        kSecAttrApplicationTag as String  : tag,
+        kSecAttrKeyType as String         : kSecAttrKeyTypeEC,
+        kSecReturnRef as String           : true
+      ]
+
+      let status = SecItemDelete(query as CFDictionary)
+      
+      guard status == errSecSuccess else {
+        promise.reject("ERR_PAIR_DELETE", "Can't delete keypair")
+        return;
+      }
+      
+      promise.resolve(true);
+    }
   }
 }
 

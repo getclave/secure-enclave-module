@@ -44,6 +44,15 @@ export async function generateKeyPair(alias: string): Promise<string> {
     return await SecureEnclaveModule.generateKeyPair(alias);
 }
 
+/**
+	@description Deletes a key pair corresponding to a alias
+	@dev Prompts for biometrics
+	@throws If there's no key pair for the alias
+*/
+export async function deleteKeyPair(alias: string): Promise<void> {
+    return await SecureEnclaveModule.deleteKeyPair(alias);
+}
+
 const emitter = new EventEmitter(
     SecureEnclaveModule ?? NativeModulesProxy.SecureEnclave,
 );
