@@ -1,9 +1,6 @@
 {
-  "platforms": ["ios", "android", "web"],
+  "platforms": ["ios"],
   "ios": {
     "modules": ["SecureEnclaveModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.secureenclave.SecureEnclaveModule"]
   }
 }
