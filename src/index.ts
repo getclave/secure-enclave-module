@@ -33,6 +33,17 @@ export async function getPublicKey(alias: string): Promise<string> {
     return await SecureEnclaveModule.getPublicKey(alias);
 }
 
+/**
+	@description Generates a key pair for a alias
+    @dev If there's a pair already, this function will override the existing one
+	@dev Prompts for biometrics
+	@returns Key pair's public key
+	@throws If key generation fails
+*/
+export async function generateKeyPair(alias: string): Promise<string> {
+    return await SecureEnclaveModule.generateKeyPair(alias);
+}
+
 const emitter = new EventEmitter(
     SecureEnclaveModule ?? NativeModulesProxy.SecureEnclave,
 );

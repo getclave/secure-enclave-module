@@ -98,6 +98,62 @@ public class SecureEnclaveModule: Module {
 
       promise.resolve(publicKeyDER.base64EncodedString())
     }
+
+    AsyncFunction("generateKeyPair") { (alias: String, promise: Promise) in
+      let flags: SecAccessControlCreateFlags = .biometryAny;
+    
+      let access = SecAccessControlCreateWithFlags(
+        kCFAllocatorDefault,
+        kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        flags,
+        nil
+      )!
+    
+      let tag = String(alias).data(using: .utf8)!
+      let attributes: [String: Any] = [
+        kSecClass as String             : kSecClassKey,
+        kSecAttrKeyType as String       : kSecAttrKeyTypeEC,
+        kSecAttrKeySizeInBits as String : 256,
+        kSecAttrTokenID as String       : kSecAttrTokenIDSecureEnclave,
+        kSecPrivateKeyAttrs as String   : [
+          kSecAttrIsPermanent as String     : true,
+          kSecAttrApplicationTag as String  : tag,
+          kSecAttrAccessControl as String   : access,
+          kSecUseAuthenticationUI as String : kSecUseAuthenticationUIAllow
+        ]
+      ]
+    
+      var error: Unmanaged<CFError>?
+    
+      guard let privateKey = SecKeyCreateRandomKey(
+        attributes as CFDictionary,
+        &error
+      ) else {
+        let err = error!.takeRetainedValue() as Error
+        promise.reject("ERR_PAIR_GENERATE", "Can't generate keypair")
+        print(err)
+        return
+      }
+    
+      guard let publicKey = SecKeyCopyPublicKey(privateKey) else {
+        promise.reject("ERR_PUB_KEY_GET", "Can't get public key")
+        return
+      }
+    
+      guard let pubExt = SecKeyCopyExternalRepresentation(
+        publicKey,
+        &error
+      ) else {
+        promise.reject("ERR_PUB_KEY_EXPORT", "Can't export public key")
+        return
+      }
+    
+      // Add curve header
+      // DEV: this might be unnecessary
+      let publicKeyDER = prependCurveHeader(pubKeyData: pubExt as Data)
+    
+      promise.resolve(publicKeyDER.base64EncodedString());
+    }
   }
 }
 
