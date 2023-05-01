@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "secure-enclave": ["../src/index"],
+      "secure-enclave/*": ["../src/*"]
+    }
+  }
+}
