@@ -7,7 +7,7 @@ public class SecureEnclaveModule: Module {
   static var algorithm: SecKeyAlgorithm = .ecdsaSignatureMessageX962SHA256
 
   /// Internal function to get an enclave key handle using key alias
-  private func getKeyHandle(alias: String) -> SecKey? {
+  private func getKeyHandle(_ alias: String) -> SecKey? {
     let tag = alias.data(using: .utf8)!
 
     // Build query to get security key
@@ -95,7 +95,7 @@ public class SecureEnclaveModule: Module {
     }
 
     AsyncFunction("getPublicKey") { (alias: String, promise: Promise) in
-      let keyHandle = getKeyHandle(alias: String(alias))    
+      let keyHandle = getKeyHandle(alias)    
 
       // Check if key handle is not nil
       guard keyHandle != nil else {
@@ -202,7 +202,7 @@ public class SecureEnclaveModule: Module {
 
     AsyncFunction("signMessage") { (alias: String, message: String, promise: Promise) in
       // Get the key handle
-      let keyHandle = getKeyHandle(alias: String(alias))!
+      let keyHandle = getKeyHandle(alias)!
       
       // Try to sign the message
       do {
