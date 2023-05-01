@@ -202,11 +202,17 @@ public class SecureEnclaveModule: Module {
 
     AsyncFunction("signMessage") { (alias: String, message: String, promise: Promise) in
       // Get the key handle
-      let keyHandle = getKeyHandle(alias)!
+      let keyHandle = getKeyHandle(alias)
+
+      // Check if key handle is not nil
+      guard keyHandle != nil else {
+        promise.reject("ERR_KEY_HANDLE_GET", "Can't get the key handle")
+        return
+      }
       
       // Try to sign the message
       do {
-        let signature = try sign(message, keyHandle)
+        let signature = try sign(message, keyHandle!)
         promise.resolve(signature)
       } catch {
         print(error) 
