@@ -26,6 +26,31 @@ extension Data {
     }
 }
 
+extension StringProtocol {
+    var hexaData: Data { .init(hexa) }
+    var hexaBytes: [UInt8] { .init(hexa) }
+    private var hexa: UnfoldSequence<UInt8, Index> {
+        sequence(state: startIndex) { startIndex in
+            guard startIndex < self.endIndex else { return nil }
+            let endIndex = self.index(startIndex, offsetBy: 2, limitedBy: self.endIndex) ?? self.endIndex
+            defer { startIndex = endIndex }
+            return UInt8(self[startIndex..<endIndex], radix: 16)
+        }
+    }
+}
+
+extension Data {
+    struct HexEncodingOptions: OptionSet {
+        let rawValue: Int
+        static let upperCase = HexEncodingOptions(rawValue: 1 << 0)
+    }
+
+    func hexEncodedString(options: HexEncodingOptions = []) -> String {
+        let format = options.contains(.upperCase) ? "%02hhX" : "%02hhx"
+        return self.map { String(format: format, $0) }.joined()
+    }
+}
+
 public class SecureEnclaveModule: Module {
 
   /// Signing algorithm used by Enclave
@@ -79,6 +104,7 @@ public class SecureEnclaveModule: Module {
     }
     
     return (signedMessage! as Data).hexEncodedString()
+    return (signedMessage! as Data).hexEncodedString()
   }
 
   // See https://docs.expo.dev/modules/module-api for more info about Expo Modules
@@ -86,6 +112,7 @@ public class SecureEnclaveModule: Module {
     Name("SecureEnclave")
 
     AsyncFunction("getPublicKey") { (alias: String, promise: Promise) in
+      let keyHandle = getKeyHandle(alias)
       let keyHandle = getKeyHandle(alias)
 
       // Check if key handle is not nil
@@ -112,6 +139,7 @@ public class SecureEnclaveModule: Module {
       // DEV: this might be unnecessary
       let publicKeyDER = prependCurveHeader(pubKeyData: pubExt as Data)
 
+      promise.resolve(publicKeyDER.hexEncodedString())
       promise.resolve(publicKeyDER.hexEncodedString())
     }
 
@@ -169,6 +197,7 @@ public class SecureEnclaveModule: Module {
       let publicKeyDER = prependCurveHeader(pubKeyData: pubExt as Data)
     
       promise.resolve((pubExt as Data).hexEncodedString());
+      promise.resolve((pubExt as Data).hexEncodedString());
     }
 
     AsyncFunction("deleteKeyPair") { (alias: String, promise: Promise) in
@@ -206,6 +235,7 @@ public class SecureEnclaveModule: Module {
         let signature = try sign(message, keyHandle!)
         promise.resolve(signature)
       } catch {
+        print(error)
         print(error)
         promise.reject("ERR_UNKNOWN", "Unknown error")
       }
