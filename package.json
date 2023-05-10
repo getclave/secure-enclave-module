@@ -41,7 +41,9 @@
     "eslint-plugin-prettier": "^4.0.0",
     "expo-module-scripts": "^3.0.4",
     "expo-modules-core": "^1.1.0",
-    "prettier": "^2.3.2"
+    "prettier": "^2.3.2",
+    "json5": ">=1.0.2",
+    "xml2js": ">=0.5.0"
   },
   "peerDependencies": {
     "expo": "*",
