@@ -1,6 +1,31 @@
 import Foundation
 import ExpoModulesCore
 
+extension StringProtocol {
+    var hexaData: Data { .init(hexa) }
+    var hexaBytes: [UInt8] { .init(hexa) }
+    private var hexa: UnfoldSequence<UInt8, Index> {
+        sequence(state: startIndex) { startIndex in
+            guard startIndex < self.endIndex else { return nil }
+            let endIndex = self.index(startIndex, offsetBy: 2, limitedBy: self.endIndex) ?? self.endIndex
+            defer { startIndex = endIndex }
+            return UInt8(self[startIndex..<endIndex], radix: 16)
+        }
+    }
+}
+
+extension Data {
+    struct HexEncodingOptions: OptionSet {
+        let rawValue: Int
+        static let upperCase = HexEncodingOptions(rawValue: 1 << 0)
+    }
+
+    func hexEncodedString(options: HexEncodingOptions = []) -> String {
+        let format = options.contains(.upperCase) ? "%02hhX" : "%02hhx"
+        return self.map { String(format: format, $0) }.joined()
+    }
+}
+
 public class SecureEnclaveModule: Module {
 
   /// Signing algorithm used by Enclave
@@ -31,7 +56,9 @@ public class SecureEnclaveModule: Module {
 
   /// Internal function to sign a message key handle
   private func sign(_ message: String, _ keyHandle: SecKey) throws -> String {
-    let messageData = message.data(using: .utf8)! as CFData
+      let array = message.hexaBytes
+      let messageData = CFDataCreate(kCFAllocatorDefault, array, array.count)!//message as! CFData
+      print(messageData)
     
     guard SecKeyIsAlgorithmSupported( keyHandle, .sign, SecureEnclaveModule.algorithm ) else {
       throw NSError(domain: "SecureEnclaveModule: Algorithm Not Supported", code: 1, userInfo: nil)
@@ -51,7 +78,7 @@ public class SecureEnclaveModule: Module {
       throw NSError(domain: "SecureEnclaveModule: Signing Failed", code: 2, userInfo: nil)
     }
     
-    return (signedMessage! as Data).base64EncodedString()
+    return (signedMessage! as Data).hexEncodedString()
   }
 
   // See https://docs.expo.dev/modules/module-api for more info about Expo Modules
@@ -59,7 +86,7 @@ public class SecureEnclaveModule: Module {
     Name("SecureEnclave")
 
     AsyncFunction("getPublicKey") { (alias: String, promise: Promise) in
-      let keyHandle = getKeyHandle(alias)    
+      let keyHandle = getKeyHandle(alias)
 
       // Check if key handle is not nil
       guard keyHandle != nil else {
@@ -85,7 +112,7 @@ public class SecureEnclaveModule: Module {
       // DEV: this might be unnecessary
       let publicKeyDER = prependCurveHeader(pubKeyData: pubExt as Data)
 
-      promise.resolve(publicKeyDER.base64EncodedString())
+      promise.resolve(publicKeyDER.hexEncodedString())
     }
 
     AsyncFunction("generateKeyPair") { (alias: String, promise: Promise) in
@@ -141,7 +168,7 @@ public class SecureEnclaveModule: Module {
       // DEV: this might be unnecessary
       let publicKeyDER = prependCurveHeader(pubKeyData: pubExt as Data)
     
-      promise.resolve(publicKeyDER.base64EncodedString());
+      promise.resolve((pubExt as Data).hexEncodedString());
     }
 
     AsyncFunction("deleteKeyPair") { (alias: String, promise: Promise) in
@@ -179,7 +206,7 @@ public class SecureEnclaveModule: Module {
         let signature = try sign(message, keyHandle!)
         promise.resolve(signature)
       } catch {
-        print(error) 
+        print(error)
         promise.reject("ERR_UNKNOWN", "Unknown error")
       }
     }
